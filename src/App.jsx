@@ -322,10 +322,6 @@ import AgentLeads from './pages/dashboard/agent/AgentLeads';
 import AgentAnalytics from './pages/dashboard/agent/AgentAnalytics';
 
 // Seller Dashboard Pages
-import SellerDashboard from './pages/dashboard/seller/SellerDashboard';
-import SellerProperties from './pages/dashboard/seller/SellerProperties';
-import SellerPropertyView from './pages/dashboard/seller/SellerPropertyView';
-import AddProperty from './pages/dashboard/seller/AddProperty';
 
 // Existing Pages
 import Home from './pages/Home';
@@ -354,8 +350,6 @@ import AdminProperties from './pages/dashboard/admin/AdminProperties';
 import AdminUsers from './pages/dashboard/admin/AdminUsers';
 import AdminSettings from './pages/dashboard/admin/AdminSettings';
 import AdminReports from './pages/dashboard/admin/AdminReports';
-import SellerProfile from './pages/dashboard/seller/SellerProfile';
-import SellerInquiries from './pages/dashboard/seller/SellerInquiries';
 
 // Loading Component
 const LoadingSpinner = () => (
@@ -379,7 +373,7 @@ const isDashboardPath = (pathname) => {
 
 // Helper function to check if user is agent or seller
 const isAgentOrSeller = (user) => {
-  return user && (user.role === 'agent' || user.role === 'seller' || user.role === 'admin');
+  return user && (user.role === 'agent' || user.role === 'admin');
 };
 
 function AppContent() {
@@ -422,22 +416,27 @@ function AppContent() {
           <Route path="/verification-report/:propertyId" element={<VerificationReport />} />
           <Route path="/verify-otp" element={<OTPVerification />} />
           <Route path="/wishlist" element={
-            <ProtectedRoute allowedRoles={['buyer']}>
+            <ProtectedRoute allowedRoles={['user']}>
               <Wishlist />
             </ProtectedRoute>
           } />
           <Route path="/buyer/home" element={
-            <ProtectedRoute allowedRoles={['buyer']}>
+            <ProtectedRoute allowedRoles={['user']}>
               <BuyerHome />
             </ProtectedRoute>
           } />
+          <Route path="/profile" element={
+            <ProtectedRoute allowedRoles={['user']}>
+              <BuyerProfile />
+            </ProtectedRoute>
+          } />
           <Route path="/buyer/profile" element={
-            <ProtectedRoute allowedRoles={['buyer']}>
+            <ProtectedRoute allowedRoles={['user']}>
               <BuyerProfile />
             </ProtectedRoute>
           } />
           <Route path="/buyer/property/:id" element={
-            <ProtectedRoute allowedRoles={['buyer']}>
+            <ProtectedRoute allowedRoles={['user']}>
               <BuyerPropertyView />
             </ProtectedRoute>
           } />
@@ -496,39 +495,6 @@ function AppContent() {
             </ProtectedRoute>
           } />
           
-          {/* Seller Dashboard Routes - Only sellers */}
-          <Route path="/dashboard/seller" element={
-            <ProtectedRoute allowedRoles={['seller']}>
-              <SellerDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/dashboard/seller/properties" element={
-            <ProtectedRoute allowedRoles={['seller']}>
-              <SellerProperties />
-            </ProtectedRoute>
-          } />
-          <Route path="/dashboard/seller/properties/:id" element={
-            <ProtectedRoute allowedRoles={['seller']}>
-              <SellerPropertyView />
-            </ProtectedRoute>
-          } />
-          <Route path="/dashboard/seller/add-property" element={
-            <ProtectedRoute allowedRoles={['seller']}>
-              <AddProperty />
-            </ProtectedRoute>
-          } />
-          <Route path='/dashboard/seller/profile' element={
-            <ProtectedRoute allowedRoles={['seller']}>
-              <SellerProfile />
-            </ProtectedRoute>
-          } />
-          <Route path="/dashboard/seller/inquiries" element={
-            <ProtectedRoute allowedRoles={['seller']}>
-              <SellerInquiries />
-            </ProtectedRoute>
-          } />
-
-
           <Route path="/dashboard/admin" element={
             <ProtectedRoute allowedRoles={['admin']}>
               <AdminDashboard />
@@ -589,8 +555,7 @@ function AppContent() {
 const getDashboardPath = (role) => {
   switch(role) {
     case 'agent': return '/dashboard/agent';
-    case 'seller': return '/dashboard/seller';
-    case 'buyer': return '/buyer/home';
+    case 'user': return '/';
     case 'admin': return '/dashboard/admin';
     default: return '/';
   }

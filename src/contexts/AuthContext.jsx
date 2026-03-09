@@ -1,8 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { authApi } from '../utils/apiClient';
 
-const PENDING_REGISTRATION_KEY = 'pendingRegistration';
 const AuthContext = createContext(null);
+const REGISTERED_USERS_KEY = 'registeredUsers';
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -12,47 +11,38 @@ export const useAuth = () => {
   return context;
 };
 
-const loadPendingRegistration = () => {
+const readRegisteredUsers = () => {
   try {
-    const raw = localStorage.getItem(PENDING_REGISTRATION_KEY);
-    return raw ? JSON.parse(raw) : null;
+    const raw = localStorage.getItem(REGISTERED_USERS_KEY);
+    return raw ? JSON.parse(raw) : [];
   } catch {
-    localStorage.removeItem(PENDING_REGISTRATION_KEY);
-    return null;
+    return [];
   }
 };
 
-const clearSession = () => {
-  localStorage.removeItem('token');
-  localStorage.removeItem('user');
+const writeRegisteredUsers = (users) => {
+  localStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(users));
 };
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [pendingRegistration, setPendingRegistration] = useState(loadPendingRegistration);
+  const [tempRegistrationData, setTempRegistrationData] = useState(null);
 
   useEffect(() => {
-    const bootstrap = async () => {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setLoading(false);
-        return;
-      }
+    const storedUser = localStorage.getItem('user');
+    const storedToken = localStorage.getItem('token');
 
+    if (storedUser && storedToken) {
       try {
-        const response = await authApi.me();
-        setUser(response.user);
-        localStorage.setItem('user', JSON.stringify(response.user));
+        setUser(JSON.parse(storedUser));
       } catch {
-        clearSession();
-      } finally {
-        setLoading(false);
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
       }
-    };
-
-    bootstrap();
+    }
+    setLoading(false);
   }, []);
 
   const register = async (userData) => {
@@ -60,15 +50,24 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       setError(null);
 
-      const response = await authApi.register(userData);
-      const pending = {
-        email: userData.email,
-        phone: userData.phone,
-      };
-      setPendingRegistration(pending);
-      localStorage.setItem(PENDING_REGISTRATION_KEY, JSON.stringify(pending));
+      const users = readRegisteredUsers();
+      const exists = users.some((u) => u.email.toLowerCase() === userData.email.toLowerCase());
+      if (exists) {
+        throw new Error('Email already exists');
+      }
 
-      return { success: true, message: response.message };
+      setTempRegistrationData({
+        id: Date.now(),
+        name: userData.name,
+        phone: userData.phone,
+        email: userData.email,
+        password: userData.password,
+        role: userData.role || 'user',
+        createdAt: new Date().toISOString(),
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      return { success: true, message: 'Registration initiated. Please verify OTP.' };
     } catch (err) {
       setError(err.message);
       return { success: false, error: err.message };
@@ -82,21 +81,27 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       setError(null);
 
-      if (!pendingRegistration?.email || !pendingRegistration?.phone) {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      if (emailOTP !== '123456' || phoneOTP !== '123456') {
+        throw new Error('Invalid OTP');
+      }
+
+      if (!tempRegistrationData) {
         throw new Error('Registration session expired. Please register again.');
       }
 
-      const response = await authApi.verifyOtp({
-        email: pendingRegistration.email,
-        phone: pendingRegistration.phone,
-        emailOtp: emailOTP,
-        phoneOtp: phoneOTP,
+      const users = readRegisteredUsers();
+      users.push({
+        ...tempRegistrationData,
+        kycStatus: 'not_started',
+        emailVerified: true,
+        phoneVerified: true,
       });
+      writeRegisteredUsers(users);
+      setTempRegistrationData(null);
 
-      localStorage.removeItem(PENDING_REGISTRATION_KEY);
-      setPendingRegistration(null);
-
-      return { success: true, message: response.message };
+      return { success: true, message: 'Verification successful! Please login.' };
     } catch (err) {
       setError(err.message);
       return { success: false, error: err.message };
@@ -105,17 +110,11 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const resendOTP = async (type) => {
+  const resendOTP = async () => {
     try {
       setLoading(true);
-      setError(null);
-
-      if (!pendingRegistration?.email) {
-        throw new Error('Registration session expired. Please register again.');
-      }
-
-      const response = await authApi.resendOtp({ email: pendingRegistration.email, type });
-      return { success: true, message: response.message };
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      return { success: true, message: 'OTP resent successfully' };
     } catch (err) {
       setError(err.message);
       return { success: false, error: err.message };
@@ -129,12 +128,58 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       setError(null);
 
-      const response = await authApi.login(email, password);
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('user', JSON.stringify(response.user));
-      setUser(response.user);
+      await new Promise((resolve) => setTimeout(resolve, 300));
 
-      return { success: true, user: response.user };
+      const registeredUsers = readRegisteredUsers();
+      let userData = registeredUsers.find(
+        (u) => u.email.toLowerCase() === String(email).toLowerCase() && u.password === password
+      );
+
+      if (!userData) {
+        if (email === 'admin@example.com') {
+          userData = {
+            id: 999,
+            name: 'Admin User',
+            email,
+            role: 'admin',
+            kycStatus: 'verified',
+            emailVerified: true,
+            phoneVerified: true,
+            createdAt: new Date().toISOString(),
+          };
+        } else if (String(email).includes('agent')) {
+          userData = {
+            id: 2,
+            name: 'Mike Agent',
+            email,
+            role: 'agent',
+            kycStatus: 'verified',
+            emailVerified: true,
+            phoneVerified: true,
+            createdAt: new Date().toISOString(),
+          };
+        } else if (String(email).includes('buyer') || String(email).includes('user')) {
+          userData = {
+            id: 1,
+            name: 'John User',
+            email,
+            role: 'user',
+            kycStatus: 'not_started',
+            emailVerified: true,
+            phoneVerified: true,
+            createdAt: new Date().toISOString(),
+          };
+        } else {
+          throw new Error('Invalid credentials');
+        }
+      }
+
+      const token = `mock_token_${Date.now()}`;
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(userData));
+      setUser(userData);
+
+      return { success: true, user: userData };
     } catch (err) {
       setError(err.message);
       return { success: false, error: err.message };
@@ -143,27 +188,17 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = async () => {
-    try {
-      await authApi.logout();
-    } catch {
-      // Ignore logout network failure and clear local state anyway.
-    }
-
-    clearSession();
+  const logout = () => {
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
     setUser(null);
   };
 
   const updateKYCStatus = async (status) => {
     if (!user) return;
-
-    try {
-      const response = await authApi.updateKycStatus(status);
-      setUser(response.user);
-      localStorage.setItem('user', JSON.stringify(response.user));
-    } catch (err) {
-      setError(err.message);
-    }
+    const updatedUser = { ...user, kycStatus: status };
+    setUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify(updatedUser));
   };
 
   const value = useMemo(
@@ -180,8 +215,9 @@ export const AuthProvider = ({ children }) => {
       isAuthenticated: !!user,
       isAdmin: user?.role === 'admin',
       isAgent: user?.role === 'agent',
-      isSeller: user?.role === 'seller',
-      isBuyer: user?.role === 'buyer',
+      isUser: user?.role === 'user',
+      isSeller: false,
+      isBuyer: false,
       needsKYC: user && (user.kycStatus === 'not_started' || user.kycStatus === 'pending'),
     }),
     [user, loading, error]

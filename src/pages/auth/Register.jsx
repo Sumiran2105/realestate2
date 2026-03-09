@@ -2,91 +2,114 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
+const MOCK_OTP = '123456';
+
 const Register = () => {
   const [formData, setFormData] = useState({
     name: '',
-    email: '',
     phone: '',
-    password: '',
-    confirmPassword: '',
-    role: 'buyer' // Default role
+    email: '',
   });
-  
-  const [errors, setErrors] = useState({});
+  const [mobileOtp, setMobileOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
   const [loading, setLoading] = useState(false);
-  
-  const { register } = useAuth();
-  const navigate = useNavigate();
+  const [errors, setErrors] = useState({});
+  const [infoMessage, setInfoMessage] = useState('');
 
-  const roles = [
-    { value: 'buyer', label: 'Buyer' },
-    { value: 'agent', label: 'Agent' },
-    { value: 'seller', label: 'Seller' }
-  ];
+  const { register, verifyOTP, login } = useAuth();
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
-    // Clear error for this field
-    if (errors[name]) {
-      setErrors({
-        ...errors,
-        [name]: null
-      });
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: null, submit: null }));
+
+    if (name === 'phone') {
+      setOtpSent(false);
+      setOtpVerified(false);
+      setMobileOtp('');
+      setInfoMessage('');
     }
   };
 
   const validateForm = () => {
-    const newErrors = {};
-    
-    if (!formData.name.trim()) newErrors.name = 'Name is required';
-    
-    if (!formData.email.trim()) newErrors.email = 'Email is required';
-    else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Email is invalid';
-    
-    if (!formData.phone.trim()) newErrors.phone = 'Phone number is required';
-    else if (!/^[0-9]{10}$/.test(formData.phone)) newErrors.phone = 'Phone must be 10 digits';
-    
-    if (!formData.password) newErrors.password = 'Password is required';
-    else if (formData.password.length < 8) newErrors.password = 'Password must be at least 8 characters';
-    
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
+    const nextErrors = {};
+
+    if (!formData.name.trim()) nextErrors.name = 'Full name is required';
+    if (!formData.phone.trim()) nextErrors.phone = 'Phone number is required';
+    if (!/^[0-9]{10}$/.test(formData.phone.trim())) nextErrors.phone = 'Phone number must be 10 digits';
+    if (!formData.email.trim()) nextErrors.email = 'Email ID is required';
+    else if (!/\S+@\S+\.\S+/.test(formData.email)) nextErrors.email = 'Please enter a valid email ID';
+
+    if (!otpVerified) nextErrors.mobileOtp = 'Please verify mobile OTP before continuing';
+
+    return nextErrors;
+  };
+
+  const handleSendOtp = () => {
+    const phone = formData.phone.trim();
+    if (!/^[0-9]{10}$/.test(phone)) {
+      setErrors((prev) => ({ ...prev, phone: 'Enter valid 10-digit phone number to send OTP' }));
+      return;
     }
-    
-    if (!formData.role) newErrors.role = 'Please select a role';
-    
-    return newErrors;
+
+    setOtpSent(true);
+    setOtpVerified(false);
+    setMobileOtp('');
+    setInfoMessage('OTP sent to mobile number. Use 123456 (mock).');
+    setErrors((prev) => ({ ...prev, phone: null, mobileOtp: null }));
+  };
+
+  const handleVerifyOtp = () => {
+    if (!otpSent) return;
+
+    if (mobileOtp === MOCK_OTP) {
+      setOtpVerified(true);
+      setInfoMessage('Mobile number verified successfully.');
+      setErrors((prev) => ({ ...prev, mobileOtp: null }));
+    } else {
+      setOtpVerified(false);
+      setErrors((prev) => ({ ...prev, mobileOtp: 'Invalid OTP. Please try again.' }));
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Validate form
     const formErrors = validateForm();
     if (Object.keys(formErrors).length > 0) {
       setErrors(formErrors);
       return;
     }
-    
+
     setLoading(true);
-    
+    setErrors((prev) => ({ ...prev, submit: null }));
+
     try {
-      const result = await register(formData);
-      if (result.success) {
-        // Navigate to OTP verification with email and phone
-        navigate('/verify-otp', { 
-          state: { 
-            email: formData.email,
-            phone: formData.phone 
-          } 
-        });
+      const registerResult = await register({
+        name: formData.name.trim(),
+        phone: formData.phone.trim(),
+        email: formData.email.trim(),
+        password: 'password123',
+        role: 'user',
+      });
+      if (!registerResult.success) {
+        throw new Error(registerResult.error || 'Registration failed');
       }
-    } catch (error) {
-      setErrors({ submit: 'Registration failed. Please try again.' });
+
+      const otpResult = await verifyOTP('123456', mobileOtp);
+      if (!otpResult.success) {
+        throw new Error(otpResult.error || 'OTP verification failed');
+      }
+
+      const loginResult = await login(formData.email.trim(), 'password123');
+      if (!loginResult.success) {
+        throw new Error(loginResult.error || 'Login failed');
+      }
+
+      navigate('/kyc');
+    } catch (err) {
+      setErrors((prev) => ({ ...prev, submit: err.message || 'Signup failed. Please try again.' }));
     } finally {
       setLoading(false);
     }
@@ -96,10 +119,9 @@ const Register = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md mx-auto">
         <div className="bg-white rounded-2xl shadow-xl p-8">
-          {/* Header */}
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold text-gray-900">Create Account</h2>
-            <p className="text-gray-600 mt-2">Join us to find your dream property</p>
+            <p className="text-gray-600 mt-2">Start your property journey</p>
           </div>
 
           {errors.submit && (
@@ -108,184 +130,122 @@ const Register = () => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Role Selection */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                I am a <span className="text-red-500">*</span>
-              </label>
-              <div className="grid grid-cols-3 gap-3">
-                {roles.map((role) => (
-                  <button
-                    key={role.value}
-                    type="button"
-                    onClick={() => setFormData({ ...formData, role: role.value })}
-                    className={`p-4 border rounded-lg text-left transition-all ${
-                      formData.role === role.value
-                        ? 'border-blue-600 bg-blue-50 ring-2 ring-blue-600'
-                        : 'border-gray-300 hover:border-blue-400'
-                    }`}
-                  >
-                    <div className="flex items-center">
-                      <div>
-                        <span className="font-medium text-sm">{role.label}</span>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-              {errors.role && <p className="mt-1 text-sm text-red-600">{errors.role}</p>}
+          {infoMessage && (
+            <div className="mb-4 p-3 bg-blue-100 text-blue-700 rounded-lg text-sm">
+              {infoMessage}
             </div>
+          )}
 
-            {/* Full Name */}
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Full Name <span className="text-red-500">*</span>
+                Full Name (As per Govt Records) <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
+                placeholder="Enter full name"
                 className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
                   errors.name ? 'border-red-500' : 'border-gray-300'
                 }`}
-                placeholder="Enter your full name"
               />
               {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
             </div>
 
-            {/* Email */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address <span className="text-red-500">*</span>
+                Phone Number (Aadhaar Linked) <span className="text-red-500">*</span>
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="tel"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  placeholder="Enter 10-digit mobile number"
+                  className={`flex-1 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                    errors.phone ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={handleSendOtp}
+                  className="px-4 py-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-sm font-medium"
+                >
+                  Verify
+                </button>
+              </div>
+              {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
+            </div>
+
+            {otpSent && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Enter Mobile OTP <span className="text-red-500">*</span>
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={mobileOtp}
+                    onChange={(e) => {
+                      setMobileOtp(e.target.value.replace(/\D/g, '').slice(0, 6));
+                      setErrors((prev) => ({ ...prev, mobileOtp: null }));
+                    }}
+                    placeholder="6-digit OTP"
+                    className={`flex-1 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                      errors.mobileOtp ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleVerifyOtp}
+                    className={`px-4 py-3 rounded-lg text-white text-sm font-medium ${
+                      otpVerified ? 'bg-green-600' : 'bg-indigo-600 hover:bg-indigo-700'
+                    }`}
+                  >
+                    {otpVerified ? 'Verified' : 'Verify OTP'}
+                  </button>
+                </div>
+                {errors.mobileOtp && <p className="mt-1 text-sm text-red-600">{errors.mobileOtp}</p>}
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Email ID <span className="text-red-500">*</span>
               </label>
               <input
                 type="email"
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
+                placeholder="you@example.com"
                 className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
                   errors.email ? 'border-red-500' : 'border-gray-300'
                 }`}
-                placeholder="you@example.com"
               />
               {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
             </div>
 
-            {/* Phone */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Phone Number <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                  errors.phone ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="9876543210"
-              />
-              {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
-            </div>
-
-            {/* Password */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Password <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                  errors.password ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="••••••••"
-              />
-              {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
-            </div>
-
-            {/* Confirm Password */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Confirm Password <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="password"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                  errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="••••••••"
-              />
-              {errors.confirmPassword && <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>}
-            </div>
-
-            {/* Terms and Conditions */}
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="terms"
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                required
-              />
-              <label htmlFor="terms" className="ml-2 block text-sm text-gray-700">
-                I agree to the{' '}
-                <Link to="/terms" className="text-blue-600 hover:text-blue-800">
-                  Terms of Service
-                </Link>{' '}
-                and{' '}
-                <Link to="/privacy" className="text-blue-600 hover:text-blue-800">
-                  Privacy Policy
-                </Link>
-              </label>
-            </div>
-
-            {/* Submit Button */}
             <button
               type="submit"
               disabled={loading}
               className={`w-full py-3 px-4 rounded-lg text-white font-medium ${
-                loading
-                  ? 'bg-blue-400 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                loading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
               }`}
             >
-              {loading ? 'Creating Account...' : 'Create Account'}
+              {loading ? 'Processing...' : 'Continue to KYC'}
             </button>
           </form>
 
-          {/* Login Link */}
           <p className="mt-6 text-center text-sm text-gray-600">
             Already have an account?{' '}
             <Link to="/login" className="text-blue-600 hover:text-blue-800 font-medium">
               Sign in
             </Link>
           </p>
-
-          {/* Quick Info */}
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <div className="grid grid-cols-3 gap-2 text-center text-xs text-gray-600">
-              <div>
-                <span className="block text-lg mb-1">✓</span>
-                <span>Verified Properties</span>
-              </div>
-              <div>
-                <span className="block text-lg mb-1">🛡️</span>
-                <span>Secure Platform</span>
-              </div>
-              <div>
-                <span className="block text-lg mb-1">🤖</span>
-                <span>AI Price Intel</span>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>

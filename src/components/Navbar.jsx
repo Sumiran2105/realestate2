@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { FaBars, FaTimes, FaHeart, FaUserCircle } from "react-icons/fa";
+import { FaBars, FaTimes, FaUserCircle } from "react-icons/fa";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function Navbar() {
@@ -8,7 +8,13 @@ export default function Navbar() {
   const [featuresOpen, setFeaturesOpen] = useState(false);
   const [mobileFeaturesOpen, setMobileFeaturesOpen] = useState(false);
   const { user, logout } = useAuth();
-  const isBuyer = user?.role === "buyer";
+
+  const getProfilePath = () => {
+    if (!user) return "/login";
+    if (user.role === "agent") return "/dashboard/agent/profile";
+    if (user.role === "admin") return "/dashboard/admin";
+    return "/profile";
+  };
   
   // Close mobile menu when clicking outside
   const mobileMenuRef = useRef(null);
@@ -71,7 +77,7 @@ export default function Navbar() {
     "Under ₹20K": "/properties",
     "₹20K - ₹50K": "/properties",
     "Above ₹50K": "/properties",
-    "Post Property": "/dashboard/seller/add-property",
+    "Post Property": "/dashboard/agent/listings",
     Dashboard: "/dashboard",
     "Property Valuation": "/services",
     "Find Agent": "/properties",
@@ -176,17 +182,10 @@ export default function Navbar() {
 
           {/* Desktop Right Controls */}
           <div className="hidden md:flex items-center gap-3">
-            {isBuyer ? (
+            {user ? (
               <>
                 <Link
-                  to="/wishlist"
-                  className="w-10 h-10 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 hover:text-red-500 transition flex items-center justify-center"
-                  title="Wishlist"
-                >
-                  <FaHeart />
-                </Link>
-                <Link
-                  to="/buyer/profile"
+                  to={getProfilePath()}
                   className="w-10 h-10 rounded-lg hardgreen text-white hover:opacity-95 transition flex items-center justify-center"
                   title="Profile"
                 >
@@ -490,18 +489,10 @@ export default function Navbar() {
 
           {/* Mobile Action Buttons */}
           <div className="mt-8 pt-6 border-t border-slate-200">
-            {isBuyer ? (
+            {user ? (
               <div className="space-y-3">
                 <Link
-                  to="/wishlist"
-                  onClick={handleMobileLinkClick}
-                  className="flex items-center gap-3 px-2 py-2 text-base font-medium text-slate-700 hover:bg-slate-100 rounded-lg transition"
-                >
-                  <FaHeart className="text-red-500" />
-                  <span>Wishlist</span>
-                </Link>
-                <Link
-                  to="/buyer/profile"
+                  to={getProfilePath()}
                   onClick={handleMobileLinkClick}
                   className="flex items-center gap-3 px-2 py-2 text-base font-medium text-slate-700 hover:bg-slate-100 rounded-lg transition"
                 >

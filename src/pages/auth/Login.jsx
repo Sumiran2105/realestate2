@@ -5,20 +5,13 @@ import { useAuth } from '../../contexts/AuthContext';
 const Login = () => {
   const [formData, setFormData] = useState({
     email: '',
-    password: '',
-    role: 'buyer'
+    password: ''
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
   const { login } = useAuth();
   const navigate = useNavigate();
-
-  const roles = [
-    { value: 'buyer', label: 'Buyer', icon: '🏠' },
-    { value: 'agent', label: 'Agent', icon: '🤝' },
-    { value: 'seller', label: 'Seller', icon: '📋' }
-  ];
 
   const handleChange = (e) => {
     setFormData({
@@ -46,11 +39,11 @@ const handleSubmit = async (e) => {
           case 'agent':
             navigate('/dashboard/agent');
             break;
-          case 'seller':
-            navigate('/dashboard/seller');
+          case 'admin':
+            navigate('/dashboard/admin');
             break;
           default:
-            navigate('/buyer/home');
+            navigate('/');
         }
       }
     } else {
@@ -66,12 +59,11 @@ const handleSubmit = async (e) => {
   // Demo credentials for quick testing
   const fillDemoCredentials = (role) => {
     const demos = {
-      buyer: { email: 'buyer@example.com', password: 'password123' },
+      user: { email: 'user@example.com', password: 'password123' },
       agent: { email: 'agent@example.com', password: 'password123' },
-      seller: { email: 'seller@example.com', password: 'password123' },
       admin: { email: 'admin@example.com', password: 'password123' }
     };
-    setFormData({ ...formData, ...demos[role], role });
+    setFormData({ ...formData, ...demos[role] });
   };
 
   return (
@@ -89,10 +81,10 @@ const handleSubmit = async (e) => {
           <p className="text-sm text-blue-800 font-medium mb-2">Quick Demo Access:</p>
           <div className="flex gap-2 flex-wrap">
             <button
-              onClick={() => fillDemoCredentials('buyer')}
+              onClick={() => fillDemoCredentials('user')}
               className="text-xs bg-white px-3 py-1 rounded-full text-blue-600 hover:bg-blue-100"
             >
-              Buyer Demo
+              User Demo
             </button>
             
             <button
@@ -100,12 +92,6 @@ const handleSubmit = async (e) => {
               className="text-xs bg-white px-3 py-1 rounded-full text-blue-600 hover:bg-blue-100"
             >
               Agent Demo
-            </button>
-            <button
-              onClick={() => fillDemoCredentials('seller')}
-              className="text-xs bg-white px-3 py-1 rounded-full text-blue-600 hover:bg-blue-100"
-            >
-              Seller Demo
             </button>
             <button
                 onClick={() => fillDemoCredentials('admin')}
