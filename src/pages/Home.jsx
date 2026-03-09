@@ -366,7 +366,7 @@ export default function Home() {
       and government backed verification criteria designed to
       eliminate risk and improve decision making.
     </p>
-    <div className="mt-8 sm:mt-20 lg:mt-8 relative z-10 max-w-4xl mr-auto text-left p-4 sm:p-6 md:p-8 rounded-3xl bg-white/95 border border-white/20 shadow-[0_40px_120px_rgba(0,0,0,0.25)]"> 
+    <div className="mt-8 sm:mt-20 lg:mt-8 relative z-10 max-w-4xl mr-auto text-left p-4 sm:p-6 md:p-8 rounded-3xl bg-white/95 border border-gray-600"> 
     <h1 className="text-sm font-bold text-slate-900 text-center mb-3">Search By</h1>
       <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50">
         
@@ -409,7 +409,7 @@ export default function Home() {
 
     <div className="mt-3 relative z-10 max-w-4xl mr-auto text-left bg-white/95 backdrop-blur-xl rounded-3xl 
                     shadow-[0_40px_120px_rgba(0,0,0,0.25)] 
-                    border border-white/20 p-6 sm:p-8 md:p-8 text-slate-800 
+                    border border-gray-600 p-6 sm:p-8 md:p-8 text-slate-800 
                     transition-all duration-500 hover:shadow-[0_50px_150px_rgba(0,0,0,0.35)]">
       <form onSubmit={handleSurveySearch}>
         {searchMode === "survey" && (
@@ -528,7 +528,7 @@ export default function Home() {
                        transition-all duration-300 font-semibold text-base 
                        shadow-xl disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Verify Property
+            Get Details
           </button>
           <button
             type="button"

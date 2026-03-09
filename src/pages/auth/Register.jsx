@@ -172,7 +172,7 @@ const Register = () => {
                 <button
                   type="button"
                   onClick={handleSendOtp}
-                  className="px-4 py-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-sm font-medium"
+                  className="px-4 py-3 rounded-lg hardgreen text-white hover:bg-green-600 text-sm font-medium"
                 >
                   Verify
                 </button>
@@ -202,7 +202,7 @@ const Register = () => {
                     type="button"
                     onClick={handleVerifyOtp}
                     className={`px-4 py-3 rounded-lg text-white text-sm font-medium ${
-                      otpVerified ? 'bg-green-600' : 'bg-indigo-600 hover:bg-indigo-700'
+                      otpVerified ? 'bg-green-600' : 'hardgreen hover:bg-green-600'
                     }`}
                   >
                     {otpVerified ? 'Verified' : 'Verify OTP'}
@@ -233,10 +233,10 @@ const Register = () => {
               type="submit"
               disabled={loading}
               className={`w-full py-3 px-4 rounded-lg text-white font-medium ${
-                loading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+                loading ? 'hardgreen cursor-not-allowed' : 'hardgreen hover:bg-green-600'
               }`}
             >
-              {loading ? 'Processing...' : 'Continue to KYC'}
+              {loading ? 'Signing Up...' : 'Sign Up'}
             </button>
           </form>
 

@@ -162,8 +162,8 @@ const handleSubmit = async (e) => {
             disabled={loading}
             className={`w-full py-3 px-4 border border-transparent rounded-lg shadow-sm text-white font-medium ${
               loading
-                ? 'bg-blue-400 cursor-not-allowed'
-                : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                ? 'hardgreen cursor-not-allowed'
+                : 'hardgreen hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
             }`}
           >
             {loading ? 'Signing in...' : 'Sign In'}
