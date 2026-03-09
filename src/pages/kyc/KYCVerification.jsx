@@ -1,6 +1,17 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+
+const MOCK_OTP = '123456';
+
+const buildCaptcha = () => {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 6; i += 1) {
+    code += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return code;
+};
 
 const KYCVerification = () => {
   const { updateKYCStatus } = useAuth();
@@ -8,115 +19,82 @@ const KYCVerification = () => {
 
   const [formData, setFormData] = useState({
     aadhaarNumber: '',
-    panNumber: '',
-    livePhoto: null,
+    captchaInput: '',
+    otp: '',
   });
+  const [captchaCode, setCaptchaCode] = useState(buildCaptcha());
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [message, setMessage] = useState('');
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const [cameraActive, setCameraActive] = useState(false);
-  const [cameraError, setCameraError] = useState('');
 
-  const videoRef = useRef(null);
-  const streamRef = useRef(null);
+  const isCaptchaMatched = useMemo(
+    () => formData.captchaInput.trim().toUpperCase() === captchaCode,
+    [formData.captchaInput, captchaCode]
+  );
 
-  useEffect(() => {
-    return () => {
-      stopCamera();
-    };
-  }, []);
-
-  const stopCamera = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
-    setCameraActive(false);
+  const refreshCaptcha = () => {
+    setCaptchaCode(buildCaptcha());
+    setFormData((prev) => ({ ...prev, captchaInput: '' }));
+    setErrors((prev) => ({ ...prev, captchaInput: null }));
   };
 
-  const startCamera = async () => {
-    setCameraError('');
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user' },
-        audio: false,
-      });
-
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
-      setCameraActive(true);
-    } catch {
-      setCameraError('Unable to access camera. Please allow permission or upload photo manually.');
-      setCameraActive(false);
-    }
-  };
-
-  const capturePhoto = () => {
-    if (!videoRef.current) return;
-
-    const video = videoRef.current;
-    const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 480;
-
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-    setFormData((prev) => ({ ...prev, livePhoto: dataUrl }));
-    setErrors((prev) => ({ ...prev, livePhoto: null }));
-    stopCamera();
-  };
-
-  const handlePhotoUpload = (file) => {
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setFormData((prev) => ({ ...prev, livePhoto: reader.result }));
-      setErrors((prev) => ({ ...prev, livePhoto: null }));
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const validateForm = () => {
+  const handleSendOtp = () => {
     const nextErrors = {};
-    const aadhaar = formData.aadhaarNumber.trim();
-    const pan = formData.panNumber.trim().toUpperCase();
 
-    if (!/^\d{12}$/.test(aadhaar)) {
+    if (!/^\d{12}$/.test(formData.aadhaarNumber.trim())) {
       nextErrors.aadhaarNumber = 'Aadhaar number must be exactly 12 digits';
     }
-
-    if (!/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(pan)) {
-      nextErrors.panNumber = 'Enter valid PAN (e.g., ABCDE1234F)';
+    if (!isCaptchaMatched) {
+      nextErrors.captchaInput = 'Captcha does not match';
     }
 
-    if (!formData.livePhoto) {
-      nextErrors.livePhoto = 'Live photo is required';
+    setErrors((prev) => ({ ...prev, ...nextErrors }));
+    if (Object.keys(nextErrors).length > 0) {
+      return;
     }
 
-    return nextErrors;
+    setOtpSent(true);
+    setOtpVerified(false);
+    setMessage('OTP sent successfully. Use 123456 for now.');
+  };
+
+  const handleVerifyOtp = () => {
+    if (!otpSent) return;
+
+    if (formData.otp === MOCK_OTP) {
+      setOtpVerified(true);
+      setErrors((prev) => ({ ...prev, otp: null }));
+      setMessage('OTP verified successfully. You can now submit KYC.');
+      return;
+    }
+
+    setOtpVerified(false);
+    setErrors((prev) => ({ ...prev, otp: 'Invalid OTP. Please try again.' }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const nextErrors = validateForm();
+    const nextErrors = {};
+    if (!otpSent) {
+      nextErrors.otp = 'Click Verify and send OTP first';
+    } else if (!otpVerified) {
+      nextErrors.otp = 'Please verify OTP before submitting KYC';
+    }
+
     if (Object.keys(nextErrors).length > 0) {
-      setErrors(nextErrors);
+      setErrors((prev) => ({ ...prev, ...nextErrors }));
       return;
     }
 
     setLoading(true);
-
     setTimeout(async () => {
       await updateKYCStatus('verified');
       setLoading(false);
-      navigate('/');
-    }, 1500);
+      navigate('/profile');
+    }, 1200);
   };
 
   return (
@@ -125,7 +103,9 @@ const KYCVerification = () => {
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900">KYC Verification</h1>
-            <p className="text-gray-600 mt-2">Enter Aadhaar, PAN, and upload a live photo</p>
+            <p className="text-gray-600 mt-2">
+              Enter Aadhaar, complete captcha, verify OTP, then submit KYC
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -137,7 +117,10 @@ const KYCVerification = () => {
                 type="text"
                 value={formData.aadhaarNumber}
                 onChange={(e) => {
-                  setFormData((prev) => ({ ...prev, aadhaarNumber: e.target.value.replace(/\D/g, '').slice(0, 12) }));
+                  setFormData((prev) => ({
+                    ...prev,
+                    aadhaarNumber: e.target.value.replace(/\D/g, '').slice(0, 12),
+                  }));
                   setErrors((prev) => ({ ...prev, aadhaarNumber: null }));
                 }}
                 className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
@@ -150,94 +133,86 @@ const KYCVerification = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                PAN Number <span className="text-red-500">*</span>
+                Captcha <span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
-                value={formData.panNumber}
-                onChange={(e) => {
-                  setFormData((prev) => ({ ...prev, panNumber: e.target.value.toUpperCase().slice(0, 10) }));
-                  setErrors((prev) => ({ ...prev, panNumber: null }));
-                }}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                  errors.panNumber ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="ABCDE1234F"
-              />
-              {errors.panNumber && <p className="mt-1 text-sm text-red-600">{errors.panNumber}</p>}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Live Photo Upload <span className="text-red-500">*</span>
-              </label>
-
-              {formData.livePhoto ? (
-                <div className="space-y-3">
-                  <img src={formData.livePhoto} alt="Live capture" className="w-full max-w-sm h-56 object-cover rounded-lg border" />
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="px-4 py-2 rounded-lg border border-dashed border-gray-400 bg-gray-50 font-mono text-lg tracking-widest text-gray-800">
+                    {captchaCode}
+                  </div>
                   <button
                     type="button"
-                    onClick={() => setFormData((prev) => ({ ...prev, livePhoto: null }))}
+                    onClick={refreshCaptcha}
                     className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
                   >
-                    Retake / Reupload
+                    Refresh
                   </button>
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  {cameraActive ? (
-                    <div className="space-y-3">
-                      <video ref={videoRef} className="w-full max-w-sm h-56 rounded-lg border bg-black" playsInline muted />
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={capturePhoto}
-                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                        >
-                          Capture Photo
-                        </button>
-                        <button
-                          type="button"
-                          onClick={stopCamera}
-                          className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={startCamera}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                      >
-                        Open Camera
-                      </button>
-
-                      <label className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 cursor-pointer">
-                        Upload from Device
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => handlePhotoUpload(e.target.files?.[0])}
-                          className="hidden"
-                        />
-                      </label>
-                    </div>
-                  )}
-
-                  {cameraError && <p className="text-sm text-red-600">{cameraError}</p>}
-                  {errors.livePhoto && <p className="text-sm text-red-600">{errors.livePhoto}</p>}
-                </div>
-              )}
+                <input
+                  type="text"
+                  value={formData.captchaInput}
+                  onChange={(e) => {
+                    setFormData((prev) => ({ ...prev, captchaInput: e.target.value.toUpperCase() }));
+                    setErrors((prev) => ({ ...prev, captchaInput: null }));
+                  }}
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                    errors.captchaInput ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  placeholder="Enter captcha exactly as shown"
+                />
+                {errors.captchaInput && <p className="text-sm text-red-600">{errors.captchaInput}</p>}
+                <button
+                  type="button"
+                  onClick={handleSendOtp}
+                  className="w-full py-3 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700"
+                >
+                  Verify & Send OTP
+                </button>
+              </div>
             </div>
+
+            {otpSent && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  OTP <span className="text-red-500">*</span>
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={formData.otp}
+                    onChange={(e) => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        otp: e.target.value.replace(/\D/g, '').slice(0, 6),
+                      }));
+                      setErrors((prev) => ({ ...prev, otp: null }));
+                    }}
+                    className={`flex-1 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                      errors.otp ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder="Enter 6-digit OTP"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleVerifyOtp}
+                    className={`px-4 py-3 rounded-lg text-white font-medium ${
+                      otpVerified ? 'bg-green-600' : 'bg-blue-600 hover:bg-blue-700'
+                    }`}
+                  >
+                    {otpVerified ? 'Verified' : 'Verify OTP'}
+                  </button>
+                </div>
+                {errors.otp && <p className="mt-1 text-sm text-red-600">{errors.otp}</p>}
+              </div>
+            )}
+
+            {message && <div className="p-3 bg-blue-50 text-blue-700 rounded-lg text-sm">{message}</div>}
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !otpVerified}
               className={`w-full py-3 rounded-lg text-white font-medium ${
-                loading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+                loading || !otpVerified ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
               }`}
             >
               {loading ? 'Submitting KYC...' : 'Submit KYC'}

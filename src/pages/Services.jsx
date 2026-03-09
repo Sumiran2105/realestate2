@@ -421,7 +421,7 @@ const Services = () => {
       </div>
 
  {/* ================= Featured Properties (NEW) ================= */}
-      <section className="w-full py-12 sm:py-16 px-4 sm:px-6 bg-white">
+      {/* <section className="w-full py-12 sm:py-16 px-4 sm:px-6 bg-white">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-8 flex flex-col items-center gap-4">
             <h2 className="text-2xl sm:text-3xl font-bold text-blue-900">Featured Properties</h2>
@@ -449,7 +449,7 @@ const Services = () => {
             <Link to="/properties" className="inline-block hardgreen text-white px-6 py-3 rounded-full font-semibold hover:opacity-95 transition">View All Properties</Link>
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* Transaction Services - FROM PAGE 4, 27-30 */}
       <div className="bg-white py-20">

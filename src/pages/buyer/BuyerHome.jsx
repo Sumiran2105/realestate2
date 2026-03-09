@@ -697,7 +697,7 @@ const BuyerHome = () => {
 
                     <div className="mt-4 flex gap-2">
                       <Link
-                        to={`/buyer/property/${listing.id}`}
+                        to={`/user/property/${listing.id}`}
                         className="flex-1 text-center px-3 py-2 hardgreen text-white rounded-lg hover:opacity-95 text-sm"
                       >
                         View Details

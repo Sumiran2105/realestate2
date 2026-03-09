@@ -301,7 +301,7 @@ const Wishlist = () => {
                   {/* Action Buttons */}
                   <div className="flex gap-2">
                     <Link
-                      to={`/buyer/property/${getItemId(property)}`}
+                      to={`/user/property/${getItemId(property)}`}
                       className="flex-1 bg-gradient-to-r from-brand-dark to-blue-800 text-white text-center py-2 rounded-lg text-xs font-medium hover:from-blue-800 hover:to-brand-dark transition-all flex items-center justify-center gap-1"
                     >
                       View Details <FaArrowRight className="text-xs" />

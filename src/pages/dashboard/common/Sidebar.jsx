@@ -9,14 +9,9 @@ import {
   FaChartLine,
   FaRupeeSign,
   FaUser,
-  FaPlus,
-  FaComments,
-  FaHeart,
-  FaSearch,
   FaSignOutAlt,
   FaTimes,
   FaCheckCircle,
-  FaHourglassHalf,
 } from "react-icons/fa";
 
 const Sidebar = ({ role, isOpen, onClose }) => {
@@ -38,13 +33,6 @@ const Sidebar = ({ role, isOpen, onClose }) => {
       { path: "/dashboard/agent/transactions", icon: <FaRupeeSign />, label: "Transactions" },
       { path: "/dashboard/agent/profile", icon: <FaUser />, label: "Profile" },
     ],
-    seller: [
-      { path: "/dashboard/seller", icon: <FaChartBar />, label: "Dashboard", exact: true },
-      { path: "/dashboard/seller/properties", icon: <FaHome />, label: "My Properties" },
-      { path: "/dashboard/seller/add-property", icon: <FaPlus />, label: "List Property" },
-      { path: "/dashboard/seller/inquiries", icon: <FaComments />, label: "Inquiries" },
-      { path: "/dashboard/seller/profile", icon: <FaUser />, label: "Profile" },
-    ],
     admin: [
         { path: "/dashboard/admin", icon: <FaChartBar />, label: "Dashboard", exact: true },
         { path: "/dashboard/admin/kyc", icon: <FaCheckCircle />, label: "KYC Verification" },
@@ -55,7 +43,7 @@ const Sidebar = ({ role, isOpen, onClose }) => {
     ]
   };
 
-  const currentMenu = menuItems[role] || menuItems.buyer;
+  const currentMenu = menuItems[role] || [];
 
   const isLinkActive = (item) => {
     if (item.exact) {

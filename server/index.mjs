@@ -72,6 +72,11 @@ const nextNumericId = (items) => {
   return max + 1;
 };
 
+const normalizeRole = (role) => {
+  if (role === 'admin' || role === 'agent') return role;
+  return 'user';
+};
+
 const isAllowedOrigin = (origin) => !origin || allowedOrigins.has(origin);
 
 const server = createServer(async (req, res) => {
@@ -132,7 +137,7 @@ const server = createServer(async (req, res) => {
         email: normalizedEmail,
         phone: normalizedPhone,
         password: String(password),
-        role,
+        role: normalizeRole(role),
         emailOtp: OTP_CODE,
         phoneOtp: OTP_CODE,
         createdAt: new Date().toISOString(),
@@ -210,7 +215,7 @@ const server = createServer(async (req, res) => {
         email: pending.email,
         phone: pending.phone,
         password: pending.password,
-        role: pending.role,
+        role: normalizeRole(pending.role),
         kycStatus: 'not_started',
         emailVerified: true,
         phoneVerified: true,
@@ -243,6 +248,12 @@ const server = createServer(async (req, res) => {
         return;
       }
 
+      const normalizedRole = normalizeRole(user.role);
+      if (normalizedRole !== user.role) {
+        user.role = normalizedRole;
+        writeDb(db);
+      }
+
       const token = randomUUID();
       db.sessions.push({ token, userId: user.id, createdAt: new Date().toISOString() });
       writeDb(db);
@@ -258,6 +269,12 @@ const server = createServer(async (req, res) => {
       if (!auth) {
         send(res, 401, { success: false, message: 'Unauthorized' }, corsOrigin);
         return;
+      }
+
+      const normalizedRole = normalizeRole(auth.user.role);
+      if (normalizedRole !== auth.user.role) {
+        auth.user.role = normalizedRole;
+        writeDb(db);
       }
 
       send(res, 200, { success: true, user: withoutPassword(auth.user) }, corsOrigin);
@@ -336,8 +353,8 @@ const server = createServer(async (req, res) => {
         return;
       }
 
-      if (!['seller', 'admin'].includes(auth.user.role)) {
-        send(res, 403, { success: false, message: 'Only seller/admin can create listings' }, corsOrigin);
+      if (!['agent', 'admin'].includes(auth.user.role)) {
+        send(res, 403, { success: false, message: 'Only agent/admin can create listings' }, corsOrigin);
         return;
       }
 

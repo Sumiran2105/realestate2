@@ -120,12 +120,11 @@ const AdminUsers = () => {
     const roleColors = {
       admin: 'bg-purple-100 text-purple-700',
       agent: 'bg-blue-100 text-blue-700',
-      seller: 'bg-green-100 text-green-700',
-      buyer: 'bg-gray-100 text-gray-700'
+      user: 'bg-gray-100 text-gray-700'
     };
     
     return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${roleColors[role] || roleColors.buyer}`}>
+      <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${roleColors[role] || roleColors.user}`}>
         {role}
       </span>
     );
@@ -218,8 +217,7 @@ const AdminUsers = () => {
                 className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
               >
                 <option value="all">All Roles</option>
-                <option value="buyer">Buyers</option>
-                <option value="seller">Sellers</option>
+                <option value="user">Users</option>
                 <option value="agent">Agents</option>
                 <option value="admin">Admins</option>
               </select>
@@ -458,8 +456,7 @@ const AdminUsers = () => {
                     onChange={(e) => setSelectedUser({...selectedUser, role: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value="buyer">Buyer</option>
-                    <option value="seller">Seller</option>
+                    <option value="user">User</option>
                     <option value="agent">Agent</option>
                     <option value="admin">Admin</option>
                   </select>

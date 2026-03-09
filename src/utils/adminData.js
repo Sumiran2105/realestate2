@@ -3,10 +3,10 @@
 const mockUsers = [
   {
     id: 1,
-    name: 'John Buyer',
+    name: 'John User',
     email: 'buyer@example.com',
     phone: '9876543210',
-    role: 'buyer',
+    role: 'user',
     kycStatus: 'verified',
     kycData: {
       aadhaarNumber: '123456789012',
@@ -29,10 +29,10 @@ const mockUsers = [
   },
   {
     id: 3,
-    name: 'Sarah Seller',
+    name: 'Sarah User',
     email: 'seller@example.com',
     phone: '9876543212',
-    role: 'seller',
+    role: 'user',
     kycStatus: 'pending',
     kycData: {
       aadhaarNumber: '123456789014',

@@ -8,20 +8,14 @@ const RecentActivity = ({ role }) => {
       { id: 3, action: 'Deal closed', description: '2BHK at Gachibowli - ₹85L', time: '3 hours ago', icon: '💰' },
       { id: 4, action: 'New rating received', description: '5 stars from Priya Patel', time: '5 hours ago', icon: '⭐' }
     ],
-    seller: [
-      { id: 1, action: 'New inquiry', description: 'Rajesh interested in your 3BHK', time: '10 min ago', icon: '💬' },
-      { id: 2, action: 'Property view', description: 'Your listing got 50 views today', time: '2 hours ago', icon: '👁️' },
-      { id: 3, action: 'Document verified', description: 'Property tax receipt verified', time: '4 hours ago', icon: '📄' },
-      { id: 4, action: 'Offer received', description: '₹1.1Cr offer on Luxury Villa', time: '6 hours ago', icon: '🤝' }
-    ],
-    buyer: [
+    user: [
       { id: 1, action: 'Saved search alert', description: '5 new properties in Gachibowli', time: '15 min ago', icon: '🔍' },
       { id: 2, action: 'Price drop', description: '3BHK in Hitech City reduced by ₹5L', time: '1 hour ago', icon: '📉' },
       { id: 3, action: 'Site visit scheduled', description: 'Sunrise Apartments tomorrow 4PM', time: '3 hours ago', icon: '📅' }
     ]
   };
 
-  const currentActivities = activities[role] || activities.buyer;
+  const currentActivities = activities[role] || activities.user;
 
   return (
     <div className="bg-white rounded-xl shadow-sm p-6">

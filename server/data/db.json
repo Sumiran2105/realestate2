@@ -2,11 +2,11 @@
   "users": [
     {
       "id": 1,
-      "name": "John Buyer",
+      "name": "John User",
       "email": "buyer@example.com",
       "phone": "9876500001",
       "password": "password123",
-      "role": "buyer",
+      "role": "user",
       "kycStatus": "not_started",
       "emailVerified": true,
       "phoneVerified": true,
@@ -26,11 +26,11 @@
     },
     {
       "id": 3,
-      "name": "Sarah Seller",
+      "name": "Sarah User",
       "email": "seller@example.com",
       "phone": "9876500003",
       "password": "password123",
-      "role": "seller",
+      "role": "user",
       "kycStatus": "verified",
       "emailVerified": true,
       "phoneVerified": true,

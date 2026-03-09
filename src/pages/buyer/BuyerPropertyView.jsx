@@ -54,8 +54,8 @@ const BuyerPropertyView = () => {
         <div className="bg-white rounded-xl border border-slate-300 p-8 text-center">
           <h1 className="text-2xl font-bold text-slate-900">Property Not Found</h1>
           <p className="text-slate-600 mt-2">This listing is unavailable.</p>
-          <Link to="/buyer/home" className="inline-block mt-4 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-            Back to Buyer Home
+          <Link to="/user/home" className="inline-block mt-4 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            Back to User Home
           </Link>
         </div>
       </div>
@@ -113,8 +113,8 @@ const BuyerPropertyView = () => {
     <div className="bg-slate-50 min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 space-y-8">
         <div className="flex items-center justify-between flex-wrap gap-3">
-          <Link to="/buyer/home" className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-100">
-            Back to Buyer Home
+          <Link to="/user/home" className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-100">
+            Back to User Home
           </Link>
           <span className={`px-3 py-1 rounded-full text-sm font-semibold ${statusInfo.color}`}>
             Verification Status: {statusInfo.label}

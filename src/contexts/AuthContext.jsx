@@ -24,6 +24,11 @@ const writeRegisteredUsers = (users) => {
   localStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(users));
 };
 
+const normalizeRole = (role) => {
+  if (role === 'admin' || role === 'agent') return role;
+  return 'user';
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -36,7 +41,10 @@ export const AuthProvider = ({ children }) => {
 
     if (storedUser && storedToken) {
       try {
-        setUser(JSON.parse(storedUser));
+        const parsedUser = JSON.parse(storedUser);
+        const normalizedUser = { ...parsedUser, role: normalizeRole(parsedUser?.role) };
+        setUser(normalizedUser);
+        localStorage.setItem('user', JSON.stringify(normalizedUser));
       } catch {
         localStorage.removeItem('user');
         localStorage.removeItem('token');
@@ -62,7 +70,7 @@ export const AuthProvider = ({ children }) => {
         phone: userData.phone,
         email: userData.email,
         password: userData.password,
-        role: userData.role || 'user',
+        role: normalizeRole(userData.role || 'user'),
         createdAt: new Date().toISOString(),
       });
 
@@ -134,6 +142,9 @@ export const AuthProvider = ({ children }) => {
       let userData = registeredUsers.find(
         (u) => u.email.toLowerCase() === String(email).toLowerCase() && u.password === password
       );
+      if (userData) {
+        userData = { ...userData, role: normalizeRole(userData.role) };
+      }
 
       if (!userData) {
         if (email === 'admin@example.com') {
@@ -158,7 +169,7 @@ export const AuthProvider = ({ children }) => {
             phoneVerified: true,
             createdAt: new Date().toISOString(),
           };
-        } else if (String(email).includes('buyer') || String(email).includes('user')) {
+        } else if (String(email).includes('buyer') || String(email).includes('seller') || String(email).includes('user')) {
           userData = {
             id: 1,
             name: 'John User',
@@ -194,6 +205,17 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  const updateUser = async (updates) => {
+    if (!user) {
+      return { success: false, error: 'User not authenticated' };
+    }
+
+    const updatedUser = { ...user, ...updates };
+    setUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+    return { success: true, user: updatedUser };
+  };
+
   const updateKYCStatus = async (status) => {
     if (!user) return;
     const updatedUser = { ...user, kycStatus: status };
@@ -209,6 +231,7 @@ export const AuthProvider = ({ children }) => {
       login,
       register,
       logout,
+      updateUser,
       verifyOTP,
       resendOTP,
       updateKYCStatus,
@@ -216,8 +239,6 @@ export const AuthProvider = ({ children }) => {
       isAdmin: user?.role === 'admin',
       isAgent: user?.role === 'agent',
       isUser: user?.role === 'user',
-      isSeller: false,
-      isBuyer: false,
       needsKYC: user && (user.kycStatus === 'not_started' || user.kycStatus === 'pending'),
     }),
     [user, loading, error]

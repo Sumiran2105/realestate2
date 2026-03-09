@@ -371,8 +371,8 @@ const isDashboardPath = (pathname) => {
          pathname.startsWith('/reset-password');
 };
 
-// Helper function to check if user is agent or seller
-const isAgentOrSeller = (user) => {
+// Helper function to check if user is in dashboard roles
+const isDashboardRole = (user) => {
   return user && (user.role === 'agent' || user.role === 'admin');
 };
 
@@ -382,11 +382,11 @@ function AppContent() {
   
   // Determine if we should show navbar and footer
   const shouldShowNavbarFooter = () => {
-    // Don't show on dashboard/kyc/auth pages for agents and sellers
-    if (isDashboardPath(location.pathname) && isAgentOrSeller(user)) {
+    // Don't show on dashboard/kyc/auth pages for agent/admin
+    if (isDashboardPath(location.pathname) && isDashboardRole(user)) {
       return false;
     }
-    // Show for all other cases (including buyers on dashboard)
+    // Show for all other cases (including user routes)
     return true;
   };
 
@@ -420,7 +420,7 @@ function AppContent() {
               <Wishlist />
             </ProtectedRoute>
           } />
-          <Route path="/buyer/home" element={
+          <Route path="/user/home" element={
             <ProtectedRoute allowedRoles={['user']}>
               <BuyerHome />
             </ProtectedRoute>
@@ -430,16 +430,14 @@ function AppContent() {
               <BuyerProfile />
             </ProtectedRoute>
           } />
-          <Route path="/buyer/profile" element={
-            <ProtectedRoute allowedRoles={['user']}>
-              <BuyerProfile />
-            </ProtectedRoute>
-          } />
-          <Route path="/buyer/property/:id" element={
+          <Route path="/user/property/:id" element={
             <ProtectedRoute allowedRoles={['user']}>
               <BuyerPropertyView />
             </ProtectedRoute>
           } />
+          <Route path="/buyer/home" element={<Navigate to="/user/home" replace />} />
+          <Route path="/buyer/profile" element={<Navigate to="/profile" replace />} />
+          <Route path="/buyer/property/:id" element={<Navigate to="/user/home" replace />} />
           
           {/* Auth Routes - Redirect to dashboard if already logged in */}
           <Route path="/login" element={
@@ -555,7 +553,7 @@ function AppContent() {
 const getDashboardPath = (role) => {
   switch(role) {
     case 'agent': return '/dashboard/agent';
-    case 'user': return '/';
+    case 'user': return '/profile';
     case 'admin': return '/dashboard/admin';
     default: return '/';
   }

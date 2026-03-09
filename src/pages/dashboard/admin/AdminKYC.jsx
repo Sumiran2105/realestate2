@@ -111,12 +111,11 @@ const AdminKYC = () => {
     const roleColors = {
       admin: 'bg-purple-100 text-purple-700 border-purple-200',
       agent: 'bg-blue-100 text-blue-700 border-blue-200',
-      seller: 'bg-green-100 text-green-700 border-green-200',
-      buyer: 'bg-gray-100 text-gray-700 border-gray-200'
+      user: 'bg-gray-100 text-gray-700 border-gray-200'
     };
     
     return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize border ${roleColors[role] || roleColors.buyer}`}>
+      <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize border ${roleColors[role] || roleColors.user}`}>
         {role}
       </span>
     );
@@ -166,8 +165,8 @@ const AdminKYC = () => {
           <div className="bg-gradient-to-br from-purple-600 to-purple-700 rounded-xl shadow-lg p-5 text-white">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-purple-100 mb-1">Sellers Queue</p>
-                <p className="text-2xl font-bold">{pendingKYC.filter(u => u.role === 'seller').length}</p>
+                <p className="text-sm text-purple-100 mb-1">Users Queue</p>
+                <p className="text-2xl font-bold">{pendingKYC.filter(u => u.role === 'user').length}</p>
               </div>
               <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center text-2xl">
                 <FaUserCheck />
@@ -207,8 +206,7 @@ const AdminKYC = () => {
                 >
                   <option value="all">All Roles</option>
                   <option value="agent">Agents Only</option>
-                  <option value="seller">Sellers Only</option>
-                  <option value="buyer">Buyers Only</option>
+                  <option value="user">Users Only</option>
                 </select>
               </div>
             </div>
@@ -225,7 +223,7 @@ const AdminKYC = () => {
                   <div className="flex items-start gap-3">
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-lg flex-shrink-0 ${
                       user.role === 'agent' ? 'bg-gradient-to-br from-blue-500 to-blue-600' :
-                      user.role === 'seller' ? 'bg-gradient-to-br from-green-500 to-green-600' :
+                      user.role === 'admin' ? 'bg-gradient-to-br from-purple-500 to-purple-600' :
                       'bg-gradient-to-br from-gray-500 to-gray-600'
                     }`}>
                       {user.name?.charAt(0) || 'U'}
