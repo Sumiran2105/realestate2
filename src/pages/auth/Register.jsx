@@ -120,8 +120,8 @@ const Register = () => {
       <div className="max-w-md mx-auto">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-gray-900">Create Account</h2>
-            <p className="text-gray-600 mt-2">Start your property journey</p>
+            <h2 className="text-3xl font-bold text-blue-900">Create Account</h2>
+            <p className="text-slate-600 mt-2">Start your property journey</p>
           </div>
 
           {errors.submit && (

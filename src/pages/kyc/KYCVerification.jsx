@@ -100,10 +100,10 @@ const KYCVerification = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-xl p-8">
+        <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-400">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">KYC Verification</h1>
-            <p className="text-gray-600 mt-2">
+            <h1 className="text-3xl font-bold text-blue-900">KYC Verification</h1>
+            <p className="text-slate-600 mt-2">
               Enter Aadhaar, complete captcha, verify OTP, then submit KYC
             </p>
           </div>
@@ -164,7 +164,7 @@ const KYCVerification = () => {
                 <button
                   type="button"
                   onClick={handleSendOtp}
-                  className="w-full py-3 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700"
+                  className="w-full py-3 rounded-lg hardgreen text-white font-medium hover:bg-green-600"
                 >
                   Verify & Send OTP
                 </button>
@@ -196,7 +196,7 @@ const KYCVerification = () => {
                     type="button"
                     onClick={handleVerifyOtp}
                     className={`px-4 py-3 rounded-lg text-white font-medium ${
-                      otpVerified ? 'bg-green-600' : 'bg-blue-600 hover:bg-blue-700'
+                      otpVerified ? 'bg-green-600' : 'hardgreen hover:bg-green-600'
                     }`}
                   >
                     {otpVerified ? 'Verified' : 'Verify OTP'}
@@ -212,7 +212,7 @@ const KYCVerification = () => {
               type="submit"
               disabled={loading || !otpVerified}
               className={`w-full py-3 rounded-lg text-white font-medium ${
-                loading || !otpVerified ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+                loading || !otpVerified ? ' cursor-not-allowed' : 'hardgreen hover:bg-green-600'
               }`}
             >
               {loading ? 'Submitting KYC...' : 'Submit KYC'}
