@@ -29,6 +29,12 @@ const normalizeRole = (role) => {
   return 'user';
 };
 
+const sanitizeUser = (userData) => {
+  if (!userData) return null;
+  const { password, ...safeUser } = userData;
+  return safeUser;
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -100,16 +106,23 @@ export const AuthProvider = ({ children }) => {
       }
 
       const users = readRegisteredUsers();
-      users.push({
+      const createdUser = {
         ...tempRegistrationData,
         kycStatus: 'not_started',
         emailVerified: true,
         phoneVerified: true,
-      });
+      };
+      users.push(createdUser);
       writeRegisteredUsers(users);
       setTempRegistrationData(null);
 
-      return { success: true, message: 'Verification successful! Please login.' };
+      const token = `mock_token_${Date.now()}`;
+      const safeUser = sanitizeUser(createdUser);
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(safeUser));
+      setUser(safeUser);
+
+      return { success: true, message: 'Verification successful!', user: safeUser };
     } catch (err) {
       setError(err.message);
       return { success: false, error: err.message };
@@ -186,11 +199,12 @@ export const AuthProvider = ({ children }) => {
       }
 
       const token = `mock_token_${Date.now()}`;
+      const safeUser = sanitizeUser(userData);
       localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(userData));
-      setUser(userData);
+      localStorage.setItem('user', JSON.stringify(safeUser));
+      setUser(safeUser);
 
-      return { success: true, user: userData };
+      return { success: true, user: safeUser };
     } catch (err) {
       setError(err.message);
       return { success: false, error: err.message };

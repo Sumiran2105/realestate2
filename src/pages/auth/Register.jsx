@@ -17,7 +17,7 @@ const Register = () => {
   const [errors, setErrors] = useState({});
   const [infoMessage, setInfoMessage] = useState('');
 
-  const { register, verifyOTP, login } = useAuth();
+  const { register, verifyOTP } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -102,12 +102,7 @@ const Register = () => {
         throw new Error(otpResult.error || 'OTP verification failed');
       }
 
-      const loginResult = await login(formData.email.trim(), 'password123');
-      if (!loginResult.success) {
-        throw new Error(loginResult.error || 'Login failed');
-      }
-
-      navigate('/kyc');
+      navigate('/kyc', { replace: true });
     } catch (err) {
       setErrors((prev) => ({ ...prev, submit: err.message || 'Signup failed. Please try again.' }));
     } finally {
@@ -156,7 +151,7 @@ const Register = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Phone Number (Aadhaar Linked) <span className="text-red-500">*</span>
+                Phone Number <span className="text-red-500">*</span>
               </label>
               <div className="flex gap-2">
                 <input

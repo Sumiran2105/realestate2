@@ -379,6 +379,7 @@ const isDashboardRole = (user) => {
 function AppContent() {
   const { user, loading } = useAuth();
   const location = useLocation();
+  const hideFooterOnAuthPages = location.pathname === '/login' || location.pathname === '/register';
   
   // Determine if we should show navbar and footer
   const shouldShowNavbarFooter = () => {
@@ -544,7 +545,7 @@ function AppContent() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
-      {showNavFooter && <Footer />}
+      {showNavFooter && !hideFooterOnAuthPages && <Footer />}
     </div>
   );
 }
