@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 const AuthContext = createContext(null);
 const REGISTERED_USERS_KEY = 'registeredUsers';
@@ -40,6 +40,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [tempRegistrationData, setTempRegistrationData] = useState(null);
+  const tempRegistrationDataRef = useRef(null);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -70,7 +71,7 @@ export const AuthProvider = ({ children }) => {
         throw new Error('Email already exists');
       }
 
-      setTempRegistrationData({
+      const pendingRegistration = {
         id: Date.now(),
         name: userData.name,
         phone: userData.phone,
@@ -78,7 +79,9 @@ export const AuthProvider = ({ children }) => {
         password: userData.password,
         role: normalizeRole(userData.role || 'user'),
         createdAt: new Date().toISOString(),
-      });
+      };
+      tempRegistrationDataRef.current = pendingRegistration;
+      setTempRegistrationData(pendingRegistration);
 
       await new Promise((resolve) => setTimeout(resolve, 500));
       return { success: true, message: 'Registration initiated. Please verify OTP.' };
@@ -101,13 +104,14 @@ export const AuthProvider = ({ children }) => {
         throw new Error('Invalid OTP');
       }
 
-      if (!tempRegistrationData) {
+      const pendingRegistration = tempRegistrationData || tempRegistrationDataRef.current;
+      if (!pendingRegistration) {
         throw new Error('Registration session expired. Please register again.');
       }
 
       const users = readRegisteredUsers();
       const createdUser = {
-        ...tempRegistrationData,
+        ...pendingRegistration,
         kycStatus: 'not_started',
         emailVerified: true,
         phoneVerified: true,
@@ -115,6 +119,7 @@ export const AuthProvider = ({ children }) => {
       users.push(createdUser);
       writeRegisteredUsers(users);
       setTempRegistrationData(null);
+      tempRegistrationDataRef.current = null;
 
       const token = `mock_token_${Date.now()}`;
       const safeUser = sanitizeUser(createdUser);

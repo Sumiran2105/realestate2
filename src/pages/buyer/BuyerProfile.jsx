@@ -15,11 +15,29 @@ const getKycBadge = (status) => {
   return 'bg-rose-100 text-rose-700 border-rose-200';
 };
 
+const getKycLabel = (status) => {
+  if (status === 'verified') return 'verified';
+  if (status === 'pending') return 'pending';
+  return 'not verified';
+};
+
+const getOrderStatusBadge = (status) => {
+  if (status === 'completed') return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+  if (status === 'processing') return 'bg-amber-100 text-amber-700 border-amber-200';
+  return 'bg-slate-100 text-slate-700 border-slate-200';
+};
+
+const formatOrderType = (type) => {
+  if (type === 'property_search') return 'Property Search';
+  return 'Manual Search';
+};
+
 const BuyerProfile = () => {
   const { user, updateUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
+  const [orders, setOrders] = useState([]);
   const [profile, setProfile] = useState({
     name: '',
     email: '',
@@ -43,6 +61,28 @@ const BuyerProfile = () => {
       timeline: user.timeline || 'Within 3 months',
       notifications: user.notifications ?? true,
     });
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const loadOrders = () => {
+      const unified = JSON.parse(localStorage.getItem('userOrders') || '[]');
+      const legacyManual = JSON.parse(localStorage.getItem('manualSearchRequests') || '[]');
+      const merged = [...unified, ...legacyManual];
+      const deduped = merged.filter((item, index, arr) => {
+        const key = item?.orderId || `legacy-${item?.id}`;
+        return arr.findIndex((candidate) => (candidate?.orderId || `legacy-${candidate?.id}`) === key) === index;
+      });
+      const mine = deduped
+        .filter((item) => String(item?.userId) === String(user.id) || String(item?.userEmail) === String(user.email))
+        .sort((a, b) => new Date(b?.submittedAt || b?.paidAt || 0) - new Date(a?.submittedAt || a?.paidAt || 0));
+      setOrders(mine);
+    };
+
+    loadOrders();
+    window.addEventListener('focus', loadOrders);
+    return () => window.removeEventListener('focus', loadOrders);
   }, [user]);
 
   const completionScore = useMemo(() => {
@@ -113,7 +153,7 @@ const BuyerProfile = () => {
                   <div className="flex items-center justify-between">
                     <span className="text-slate-500">KYC</span>
                     <span className={`rounded-full border px-3 py-1 text-xs font-semibold capitalize ${getKycBadge(user?.kycStatus)}`}>
-                      {user?.kycStatus || 'not_started'}
+                      {getKycLabel(user?.kycStatus)}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
@@ -233,6 +273,48 @@ const BuyerProfile = () => {
                   </label>
                 </div>
               </div> */}
+
+              <div className="rounded-2xl border border-slate-200 p-5">
+                <h2 className="text-lg font-semibold text-slate-900">My Orders</h2>
+                {orders.length === 0 ? (
+                  <p className="mt-3 text-sm text-slate-600">No orders yet.</p>
+                ) : (
+                  <div className="mt-4 space-y-3">
+                    {orders.slice(0, 5).map((order) => (
+                      (() => {
+                        const displayStatus =
+                          order?.requestType === 'property_search' &&
+                          (order?.reportGenerated || order?.paymentStatus === 'paid')
+                            ? 'completed'
+                            : (order?.status || 'submitted');
+
+                        return (
+                      <div key={order.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm font-semibold text-slate-900">{order.orderId || `MSR-${order.id}`}</p>
+                          <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold capitalize ${getOrderStatusBadge(displayStatus)}`}>
+                            {displayStatus}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-xs font-medium text-slate-700">
+                          {formatOrderType(order.requestType)}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-600">
+                          {order.state}, {order.district} | {order.cityMandal || '-'} | {order.village || '-'}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-600">
+                          Survey: {order.surveyNumber || '-'} | Passbook: {order.passbookNumber || '-'}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          Payment: {order.paymentStatus || 'pending'} | Amount: Rs.{order.paidAmount || 0} | Date: {formatDate(order.paidAt || order.submittedAt)}
+                        </p>
+                      </div>
+                        );
+                      })()
+                    ))}
+                  </div>
+                )}
+              </div>
 
               <div className="flex flex-wrap items-center justify-end gap-3">
                 {saveMessage && <p className="text-sm text-slate-600">{saveMessage}</p>}

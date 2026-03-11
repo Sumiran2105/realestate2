@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 import propertiesData from "../data/properties.json";
 import {
   FiShield,
@@ -15,6 +16,8 @@ import {
  
 export default function Home() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user, needsKYC } = useAuth();
   const listings = propertiesData?.listings || [];
   const [searchMode, setSearchMode] = useState("survey");
   const [selectedState, setSelectedState] = useState("");
@@ -25,6 +28,16 @@ export default function Home() {
   const [passbookInput, setPassbookInput] = useState("");
   const [searched, setSearched] = useState(false);
   const [matchedProperty, setMatchedProperty] = useState(null);
+  const [manualSearchData, setManualSearchData] = useState({
+    state: '',
+    district: '',
+    cityMandal: '',
+    village: '',
+    surveyNumber: '',
+    passbookNumber: '',
+  });
+  const [manualPreviewData, setManualPreviewData] = useState(null);
+  const [manualSearchMessage, setManualSearchMessage] = useState('');
 
   /* ================= HERO PARALLAX (UNCHANGED) ================= */
   useEffect(() => {
@@ -254,6 +267,15 @@ export default function Home() {
       ),
     [listings, selectedState]
   );
+  const manualDistrictOptions = useMemo(
+    () =>
+      uniqueSorted(
+        listings
+          .filter((item) => String(item?.location?.state || "").trim() === manualSearchData.state)
+          .map((item) => String(item?.location?.district || "").trim())
+      ),
+    [listings, manualSearchData.state]
+  );
 
   const cityMandalOptions = useMemo(
     () =>
@@ -294,7 +316,22 @@ export default function Home() {
   const clearSearchResult = () => {
     setMatchedProperty(null);
     setSearched(false);
+    setManualSearchMessage('');
   };
+
+  useEffect(() => {
+    const state = location.state || {};
+    let shouldReplaceState = false;
+
+    if (state.manualSearchSubmitted) {
+      setManualSearchMessage('Manual search request submitted successfully.');
+      shouldReplaceState = true;
+    }
+
+    if (shouldReplaceState) {
+      navigate(location.pathname, { replace: true });
+    }
+  }, [location.state, listings, navigate, location.pathname]);
 
   const resetFilters = () => {
     setSearchMode("survey");
@@ -304,11 +341,53 @@ export default function Home() {
     setSelectedVillage("");
     setSelectedSurvey("");
     setPassbookInput("");
+    setManualSearchData({
+      state: '',
+      district: '',
+      cityMandal: '',
+      village: '',
+      surveyNumber: '',
+      passbookNumber: '',
+    });
+    setManualPreviewData(null);
     clearSearchResult();
   };
 
   const handleSurveySearch = (e) => {
     e.preventDefault();
+
+    if (!user) {
+      navigate('/login', { state: { from: '/' } });
+      return;
+    }
+
+    if (needsKYC) {
+      navigate('/kyc', { state: { from: '/' } });
+      return;
+    }
+
+    if (searchMode === 'manual') {
+      if (!manualSearchData.state || !manualSearchData.district || !manualSearchData.cityMandal.trim() || !manualSearchData.village.trim()) {
+        setManualSearchMessage('Please fill state, district, city/mandal, and village for manual search.');
+        return;
+      }
+
+      const hasSurveyOrPassbook = manualSearchData.surveyNumber.trim() || manualSearchData.passbookNumber.trim();
+      if (!hasSurveyOrPassbook) {
+        setManualSearchMessage('Enter survey number or Pattadar passbook number for manual search.');
+        return;
+      }
+
+      setManualPreviewData({
+        ...manualSearchData,
+        submittedAt: new Date().toISOString(),
+      });
+      setManualSearchMessage('');
+      setSearched(false);
+      setMatchedProperty(null);
+      return;
+    }
+
     let match = null;
 
     if (searchMode === "survey") {
@@ -333,6 +412,47 @@ export default function Home() {
 
     setMatchedProperty(match || null);
     setSearched(true);
+  };
+
+  const handlePropertyViewFull = () => {
+    if (!matchedProperty) return;
+
+    const requestPayload = {
+      requestType: 'property_search',
+      searchMode,
+      state: selectedState || '',
+      district: selectedDistrict || '',
+      cityMandal: selectedCityMandal || '',
+      village: selectedVillage || '',
+      surveyNumber: searchMode === 'survey' ? selectedSurvey : '',
+      passbookNumber: searchMode === 'passbook' ? passbookInput.trim() : '',
+      propertyId: matchedProperty.property_id,
+      propertyTitle: matchedProperty.title || '',
+      submittedAt: new Date().toISOString(),
+    };
+
+    navigate('/search/payment', { state: { request: requestPayload } });
+  };
+
+  const handleManualEdit = () => {
+    setManualPreviewData(null);
+    setManualSearchMessage('');
+  };
+
+  const handleManualProceedToPayment = () => {
+    if (!manualPreviewData) return;
+    navigate('/manual-search/payment', {
+      state: { request: manualPreviewData },
+    });
+    setManualSearchData({
+      state: '',
+      district: '',
+      cityMandal: '',
+      village: '',
+      surveyNumber: '',
+      passbookNumber: '',
+    });
+    setManualPreviewData(null);
   };
 
   return (
@@ -402,6 +522,21 @@ export default function Home() {
               className="h-4 w-4 accent-brand-dark"
             />
              Pattadar  Number
+          </label>
+          <label className="inline-flex items-center gap-2 text-sm sm:text-base font-medium text-slate-800 cursor-pointer">
+            <input
+              type="radio"
+              name="searchMode"
+              checked={searchMode === "manual"}
+              onChange={() => {
+                setSearchMode("manual");
+                setPassbookInput("");
+                setSelectedSurvey("");
+                clearSearchResult();
+              }}
+              className="h-4 w-4 accent-brand-dark"
+            />
+             Manual Search
           </label>
         </div>
       </div>
@@ -519,16 +654,113 @@ export default function Home() {
             />
           </div>
         )}
+        {searchMode === "manual" && (
+          <div className="space-y-4">
+            <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+              Use manual search for properties before 2016 or when records are not available digitally.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <select
+                value={manualSearchData.state}
+                onChange={(e) => {
+                  setManualSearchData((prev) => ({
+                    ...prev,
+                    state: e.target.value,
+                    district: '',
+                    cityMandal: '',
+                    village: '',
+                  }));
+                }}
+                className="px-3 py-3 sm:px-4 sm:py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-brand focus:border-brand outline-none transition w-full text-sm sm:text-base bg-white"
+              >
+                <option value="">Select State</option>
+                {stateOptions.map((state) => (
+                  <option key={state} value={state}>
+                    {state}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={manualSearchData.district}
+                onChange={(e) => {
+                  setManualSearchData((prev) => ({
+                    ...prev,
+                    district: e.target.value,
+                    cityMandal: '',
+                    village: '',
+                  }));
+                }}
+                disabled={!manualSearchData.state}
+                className="px-3 py-3 sm:px-4 sm:py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-brand focus:border-brand outline-none transition w-full text-sm sm:text-base bg-white"
+              >
+                <option value="">Select District</option>
+                {manualDistrictOptions.map((district) => (
+                  <option key={district} value={district}>
+                    {district}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="text"
+                value={manualSearchData.cityMandal}
+                onChange={(e) => {
+                  setManualSearchData((prev) => ({
+                    ...prev,
+                    cityMandal: e.target.value,
+                  }));
+                }}
+                className="px-3 py-3 sm:px-4 sm:py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-brand focus:border-brand outline-none transition w-full text-sm sm:text-base"
+                placeholder="Enter City / Mandal"
+              />
+              <input
+                type="text"
+                value={manualSearchData.village}
+                onChange={(e) => {
+                  setManualSearchData((prev) => ({
+                    ...prev,
+                    village: e.target.value,
+                  }));
+                }}
+                className="px-3 py-3 sm:px-4 sm:py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-brand focus:border-brand outline-none transition w-full text-sm sm:text-base"
+                placeholder="Enter Village"
+              />
+              <input
+                type="text"
+                value={manualSearchData.surveyNumber}
+                onChange={(e) =>
+                  setManualSearchData((prev) => ({ ...prev, surveyNumber: e.target.value }))
+                }
+                placeholder="Enter Survey Number"
+                className="px-3 py-3 sm:px-4 sm:py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-brand focus:border-brand outline-none transition w-full text-sm sm:text-base"
+              />
+              <input
+                type="text"
+                value={manualSearchData.passbookNumber}
+                onChange={(e) =>
+                  setManualSearchData((prev) => ({ ...prev, passbookNumber: e.target.value }))
+                }
+                placeholder="Enter Pattadar Passbook Number"
+                className="px-3 py-3 sm:px-4 sm:py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-brand focus:border-brand outline-none transition w-full text-sm sm:text-base"
+              />
+            </div>
+          </div>
+        )}
         <div className="mt-6 flex flex-col sm:flex-row gap-3">
           <button
             type="submit"
-            disabled={searchMode === "survey" ? !selectedSurvey : !passbookInput.trim()}
+            disabled={
+              searchMode === "survey"
+                ? !selectedSurvey
+                : searchMode === "passbook"
+                  ? !passbookInput.trim()
+                  : !(manualSearchData.surveyNumber.trim() || manualSearchData.passbookNumber.trim())
+            }
             className="flex-1 hardgreen text-white py-3 sm:py-4 rounded-2xl
                        hover:opacity-95 hover:scale-[1.02] active:scale-[0.98]
                        transition-all duration-300 font-semibold text-base 
                        shadow-xl disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Get Details
+            {searchMode === 'manual' ? 'Submit (Preview)' : 'Get Details'}
           </button>
           <button
             type="button"
@@ -546,6 +778,41 @@ export default function Home() {
             ? `No property found for selected survey number: "${selectedSurvey}".`
             : `No property found for passbook number: "${passbookInput}".`}
         </p>
+      )}
+      {manualSearchMessage && (
+        <p className="mt-5 text-left text-sm text-emerald-700 font-medium">
+          {manualSearchMessage}
+        </p>
+      )}
+      {manualPreviewData && (
+        <div className="mt-5 rounded-2xl border border-slate-300 bg-slate-50 p-4">
+          <h3 className="text-sm font-semibold text-slate-900">Manual Search Preview</h3>
+          <p className="mt-2 text-xs text-slate-600">
+            State: {manualPreviewData.state} | District: {manualPreviewData.district}
+          </p>
+          <p className="mt-1 text-xs text-slate-600">
+            City/Mandal: {manualPreviewData.cityMandal || '-'} | Village: {manualPreviewData.village || '-'}
+          </p>
+          <p className="mt-1 text-xs text-slate-600">
+            Survey: {manualPreviewData.surveyNumber || '-'} | Passbook: {manualPreviewData.passbookNumber || '-'}
+          </p>
+          <div className="mt-3 flex flex-col sm:flex-row gap-2">
+            <button
+              type="button"
+              onClick={handleManualEdit}
+              className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 text-sm"
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              onClick={handleManualProceedToPayment}
+              className="px-4 py-2 rounded-lg hardgreen text-white hover:bg-green-600 text-sm"
+            >
+              Submit & Go to Payment
+            </button>
+          </div>
+        </div>
       )}
 
       {matchedProperty && (
@@ -681,10 +948,10 @@ export default function Home() {
                   Purchase verification report to understand the risks.
                 </p>
                 <button
-                  onClick={() => navigate(`/verification-report/${matchedProperty.property_id}`)}
+                  onClick={handlePropertyViewFull}
                   className="mt-3 px-5 py-2.5 rounded-lg hardgreen text-white font-medium hover:opacity-95 transition"
                 >
-                  View Risk Report - ₹199
+                  View Full For Payment - ₹199
                 </button>
               </div>
             )}
@@ -703,12 +970,12 @@ export default function Home() {
                     : "Detailed document status, pending items, and risk assessment"}
                 </p>
                 <button
-                  onClick={() => navigate(`/verification-report/${matchedProperty.property_id}`)}
+                  onClick={handlePropertyViewFull}
                   className="mt-3 px-5 py-2.5 rounded-lg hardgreen text-white font-medium hover:opacity-95 transition"
                 >
                   {matchedProperty?.verified_badge === "Fully Verified" 
-                    ? "Download Full Verification Report - ₹299" 
-                    : "Download Partial Report - ₹199"}
+                    ? "View Full For Payment - ₹299" 
+                    : "View Full For Payment - ₹199"}
                 </button>
               </div>
             )}

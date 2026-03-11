@@ -9,6 +9,7 @@ const Register = () => {
     name: '',
     phone: '',
     email: '',
+    password: '',
   });
   const [mobileOtp, setMobileOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
@@ -41,6 +42,8 @@ const Register = () => {
     if (!/^[0-9]{10}$/.test(formData.phone.trim())) nextErrors.phone = 'Phone number must be 10 digits';
     if (!formData.email.trim()) nextErrors.email = 'Email ID is required';
     else if (!/\S+@\S+\.\S+/.test(formData.email)) nextErrors.email = 'Please enter a valid email ID';
+    if (!formData.password) nextErrors.password = 'Password is required';
+    else if (formData.password.length < 6) nextErrors.password = 'Password must be at least 6 characters';
 
     if (!otpVerified) nextErrors.mobileOtp = 'Please verify mobile OTP before continuing';
 
@@ -90,7 +93,7 @@ const Register = () => {
         name: formData.name.trim(),
         phone: formData.phone.trim(),
         email: formData.email.trim(),
-        password: 'password123',
+        password: formData.password,
         role: 'user',
       });
       if (!registerResult.success) {
@@ -102,7 +105,7 @@ const Register = () => {
         throw new Error(otpResult.error || 'OTP verification failed');
       }
 
-      navigate('/kyc', { replace: true });
+      navigate('/', { replace: true });
     } catch (err) {
       setErrors((prev) => ({ ...prev, submit: err.message || 'Signup failed. Please try again.' }));
     } finally {
@@ -222,6 +225,23 @@ const Register = () => {
                 }`}
               />
               {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Password <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="Create password"
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                  errors.password ? 'border-red-500' : 'border-gray-300'
+                }`}
+              />
+              {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
             </div>
 
             <button

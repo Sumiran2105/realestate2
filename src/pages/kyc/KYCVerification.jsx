@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 const MOCK_OTP = '123456';
@@ -16,6 +16,7 @@ const buildCaptcha = () => {
 const KYCVerification = () => {
   const { updateKYCStatus } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [formData, setFormData] = useState({
     aadhaarNumber: '',
@@ -93,7 +94,8 @@ const KYCVerification = () => {
     setTimeout(async () => {
       await updateKYCStatus('verified');
       setLoading(false);
-      navigate('/profile');
+      const redirectPath = location.state?.from || '/profile';
+      navigate(redirectPath, { replace: true });
     }, 1200);
   };
 

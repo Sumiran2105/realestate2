@@ -331,6 +331,7 @@ import PropertyDetail from './pages/PropertyDetail';
 import Services from './pages/Services';
 import Contact from './pages/Contact';
 import VerificationReport from './pages/VerificationReport';
+import ManualSearchPayment from './pages/ManualSearchPayment';
 import LegalAssistance from './pages/services/LegalAssistance';
 import VerifyProperty from './pages/services/VerifyProperty';
 import HomeLoan from './pages/services/HomeLoan';
@@ -376,6 +377,17 @@ const isDashboardRole = (user) => {
   return user && (user.role === 'agent' || user.role === 'admin');
 };
 
+const PropertyDetailGuard = () => {
+  const { user, needsKYC } = useAuth();
+  const location = useLocation();
+
+  if (user && needsKYC) {
+    return <Navigate to="/kyc" state={{ from: `${location.pathname}${location.search}` }} replace />;
+  }
+
+  return <PropertyDetail />;
+};
+
 function AppContent() {
   const { user, loading } = useAuth();
   const location = useLocation();
@@ -407,7 +419,7 @@ function AppContent() {
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
           <Route path="/properties" element={<Properties />} />
-          <Route path="/property/:id" element={<PropertyDetail />} />
+          <Route path="/property/:id" element={<PropertyDetailGuard />} />
           <Route path="/services" element={<Services />} />
           <Route path="/services/legal-assistance" element={<LegalAssistance />} />
           <Route path="/services/verify-property" element={<VerifyProperty />} />
@@ -415,6 +427,16 @@ function AppContent() {
           <Route path="/services/rental-agreements" element={<RentalAgreements />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/verification-report/:propertyId" element={<VerificationReport />} />
+          <Route path="/manual-search/payment" element={
+            <ProtectedRoute allowedRoles={['user']}>
+              <ManualSearchPayment />
+            </ProtectedRoute>
+          } />
+          <Route path="/search/payment" element={
+            <ProtectedRoute allowedRoles={['user']}>
+              <ManualSearchPayment />
+            </ProtectedRoute>
+          } />
           <Route path="/verify-otp" element={<OTPVerification />} />
           <Route path="/wishlist" element={
             <ProtectedRoute allowedRoles={['user']}>
@@ -445,7 +467,7 @@ function AppContent() {
             !user ? <Login /> : <Navigate to={getDashboardPath(user.role)} replace />
           } />
           <Route path="/register" element={
-            !user ? <Register /> : <Navigate to={getDashboardPath(user.role)} replace />
+            !user ? <Register /> : <Navigate to="/" replace />
           } />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
